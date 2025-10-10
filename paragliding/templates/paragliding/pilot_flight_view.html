@@ -1,0 +1,82 @@
+{% extends "master.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}
+    {{ pilot.name }} - Uçuş Kayıtları
+{% endblock %}
+
+{% block content %}
+    <h1 class="mt-4">{{ pilot.name }} - Uçuş Kayıtları</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a href="{% url 'paragliding:index' %}">Genel Liste</a></li>
+        <li class="breadcrumb-item active">Uçuş Kayıtları</li>
+    </ol>
+
+    <form method="post" class="mb-3">
+        {% csrf_token %}
+        <button type="submit" name="submit" value="Get_Flights" class="btn btn-info btn-sm">
+            <span class="material-symbols-outlined align-middle">flight_takeoff</span> Uçuşları Forumdan Çek
+        </button>
+    </form>
+    <!-- Flights Table -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-table me-1"></i>
+            <strong>Uçuşlar</strong>
+        </div>
+        <div class="card-body">
+            <table id="datatableFlights" class="datatable-init">
+                <thead>
+                    <tr>
+                        <th>Uçuş Tarihi</th>
+                        <th>Kalkış</th>
+                        <th>Süre</th>
+                        <th>Mesafe (km)</th>
+                        <th>OLC (km)</th>
+                        <th>OLC Puanı</th>
+                        <th>Uçuş Cinsi</th>
+                        <th>Kanat</th>
+                        <th>URL</th>
+                    </tr>
+
+
+                    
+                </thead>
+                <tfoot>
+                    <tr>
+                        <th>Uçuş Tarihi</th>
+                        <th>Kalkış</th>
+                        <th>Süre</th>
+                        <th>Mesafe (km)</th>
+                        <th>OLC (km)</th>
+                        <th>OLC Puanı</th>
+                        <th>Uçuş Cinsi</th>
+                        <th>Kanat</th>
+                        <th>URL</th>
+                    </tr>
+                </tfoot>
+                <tbody>
+                    {% for flight in flights %}
+                        <tr>
+                            <td>{{ flight.flight_date|date:"d.m.Y" }}</td>
+                            <td>{{ flight.takeoff_name }}</td>
+                            <td>{{ flight.duration }}</td>
+                            <td>{{ flight.distance }}</td>
+                            <td>{{ flight.distance_olc }}</td>
+                            <td>{{ flight.points_olc }}</td>
+                            <td>{{ flight.flight_type }}</td>
+                            <td>{{ flight.paraglider }}</td>
+                            <td>
+                                {% if flight.flight_url %}
+                                    <a href="{{ flight.flight_url }}" target="_blank">Görüntüle</a>
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}

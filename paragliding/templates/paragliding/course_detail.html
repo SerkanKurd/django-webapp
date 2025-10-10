@@ -1,0 +1,93 @@
+{% extends "master.html" %}
+{% load duration_filters %}
+
+{% block title %}
+    {{ title }}
+{% endblock %}
+
+{% block content %}
+    <h1 class="mt-4">{{ course.course_name }}</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a href="{% url 'homepage:index' %}">Ana Sayfa</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'paragliding:index' %}">Genel Liste</a></li>
+        <li class="breadcrumb-item active">Kurs Detayı</li>
+    </ol>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-info-circle me-1"></i>
+            <strong>Kurs Bilgileri</strong>
+            <a href="{% url 'paragliding:course_id' course_id=course.id %}" class="btn btn-primary btn-sm float-end">
+                <span class="material-symbols-outlined" style="vertical-align: middle;">Edit</span> Düzenle
+            </a>
+        </div>
+        <div class="card-body">
+            <p><strong>Başlangıç Tarihi:</strong> {{ course.start_date }}</p>
+            <p><strong>Bitiş Tarihi:</strong> {{ course.end_date }}</p>
+            <p>
+                <strong>Durum:</strong>
+                {% if course.is_completed %}
+                    <span class="badge bg-success">Tamamlandı</span>
+                {% else %}
+                    <span class="badge bg-warning">Devam Ediyor</span>
+                {% endif %}
+            </p>
+            {% if course.description %}
+                <p><strong>Açıklama:</strong></p>
+                <p>{{ course.description|linebreaks }}</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-users me-1"></i>
+            <strong>Kursa Kayıtlı Pilotlar ({{ pilots.count }})</strong>
+        </div>
+        <div class="card-body">
+            <table id="datatablePilots" class="datatable-init">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>Pilot Adı</th>
+                        <th>Toplam Uçuş</th>
+                        <th>Toplam Süre</th>
+                        <th>Toplam Mesafe (km)</th>
+                        <th>Kurs Uçuşları</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pilot in pilots %}
+                        <tr>
+                            <td>
+                                <a href="{{ pilot.profile_url }}" class="btn btn-primary btn-sm" target="_blank">
+                                    <span class="material-symbols-outlined">paragliding</span>
+                                </a>
+                            </td>
+                            <td>
+                                {{ pilot.name }}
+                                &nbsp;<span class="badge bg-info">{{ pilot.level|default_if_none:"" }}</span>
+                            </td>
+                            <td>{{ pilot.total_flights }}</td>
+                            <td>{{ pilot.total_duration|format_duration }}</td>
+                            <td>{{ pilot.total_distance|floatformat:2 }}</td>
+                            <td>
+                                {% if pilot.flights_in_course %}
+                                    <ol class="mb-0">
+                                        <small>
+                                            {% for flight in pilot.flights_in_course %}
+                                                <li>{{ flight.flight_date|date:"d.m.Y" }} - {{ flight.takeoff_name }} ({{ flight.duration }}, {{ flight.distance|floatformat:2 }} km)</li>
+                                            {% endfor %}
+                                        </small>
+                                    </ol>
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}

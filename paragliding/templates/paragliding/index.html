@@ -1,0 +1,207 @@
+{% extends "master.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}
+    Genel Liste
+{% endblock %}
+
+{% block content %}
+    <h1 class="mt-4">Genel Liste</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a href="{% url 'homepage:index' %}">Ana Sayfa</a></li>
+        <li class="breadcrumb-item active">Genel Liste</li>
+    </ol>
+    <div class="card mb-4">
+        <div class="card-body">
+            {% crispy form %}
+        </div>
+    </div>
+    <div class="card mb-4">
+        <div class="card-body">
+            <a href="{% url 'paragliding:pilot' %}" class="btn btn-primary btn-xl">
+                Pilot Ekle
+            </a>
+            <a href="{% url 'paragliding:course' %}" class="btn btn-primary btn-xl">
+                Kurs Ekle
+            </a>
+        </div>
+    </div>
+    <!--Pilot Table-->
+     <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-table me-1"></i>
+            <strong>Pilotlar</strong>
+        </div>
+        <div class="card-body">
+            <table id="datatablePilot" class="datatable-init">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>Pilot</th>
+                        <th>Seviye</th>
+                        <th>Kurs</th>
+                    </tr>
+                </thead>
+                <tfoot>
+                    <tr>
+                        <th></th>
+                        <th>Pilot</th>
+                        <th>Seviye</th>
+                        <th>Kurs</th>
+                    </tr>
+                </tfoot>
+                <tbody>
+                    {% for pilot in pilots %}
+                        <tr>
+                            <td>
+                                <form action="{% url 'paragliding:pilot_id' pilot_id=pilot.id %}" method="post" class="ms-1">
+                                    {% csrf_token %}
+                                    <a href="{{ pilot.profile_url }}" class="btn btn-primary btn-sm" target="_blank">
+                                        <span class="material-symbols-outlined">paragliding</span>
+                                    </a>
+                                    <a href="{% url 'paragliding:pilot_id' pilot_id=pilot.id %}" class="btn btn-primary btn-sm">
+                                        <span class="material-symbols-outlined">Edit</span>
+                                    </a>
+                                    <button type="submit" name="submit" value="Sil" class="btn btn-danger btn-sm" onclick="return confirm('Bu pilotu silmek istediğinizden emin misiniz?');">
+                                        <span class="material-symbols-outlined">Delete</span>
+                                    </button>
+                                    <a href="{% url 'paragliding:apply_course' pilot_id=pilot.id %}" class="btn btn-primary btn-sm">
+                                        <span class="material-symbols-outlined">school</span>
+                                    </a>
+                                    <a href="{% url 'paragliding:pilot_flight_view' pilot_id=pilot.id %}" class="btn btn-info btn-sm">
+                                        <span class="material-symbols-outlined">flight</span>
+                                    </a>
+                                </form>
+                            </td>
+                            <td>{{ pilot.name }}</td>
+                            <td>{{ pilot.level }}</td>
+                            <td>
+                                {% for course in pilot.course.all %}
+                                {{ course.course_name }} ({{ course.start_date }})
+                                    {% if course.is_completed %}
+                                        &nbsp;<span class="badge bg-success">Tamamlandı</span>
+                                    {% else %}
+                                        &nbsp;<span class="badge bg-warning">Devam Ediyor</span>
+                                    {% endif %}
+                                    {% if not forloop.last %}<br> {% endif %}
+                                {% endfor %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <!--Course Table-->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-table me-1"></i>
+            <strong>Kurslar</strong>
+        </div>
+        <div class="card-body">
+                <table id="datatableCourses" class="datatable-init">
+                <tfoot>
+                    <tr>
+                        <th></th>
+                        <th>Kurs Adı</th>
+                        <th>Başlangıç Tarihi</th>
+                        <th>Bitiş Tarihi</th>
+                        <th>Kursiyerler</th>
+                    </tr>
+                </tfoot>
+                <tbody>
+                    {% for course in courses %}
+                        <tr>
+                            <td>
+                                 <form action="{% url 'paragliding:course_id' course_id=course.id %}" method="post" class="ms-1">
+                                    {% csrf_token %}
+                                    <a href="{% url 'paragliding:course_id' course_id=course.id %}" class="btn btn-primary btn-sm">
+                                        <span class="material-symbols-outlined">Edit</span>
+                                    </a>
+                                    <a href="{% url 'paragliding:course_detail_id' course_id=course.id %}" class="btn btn-success btn-sm">
+                                        <span class="material-symbols-outlined">search</span>
+                                    </a>
+                                    <button type="submit" name="submit" value="Sil" class="btn btn-danger btn-sm" onclick="return confirm('Bu kursu silmek istediğinizden emin misiniz?');">
+                                        <span class="material-symbols-outlined">Delete</span>
+                                    </button>
+                                </form>
+                            </td>
+                            <td>
+                                {{ course.course_name }}
+                                </a>
+                                {% if course.is_completed %}
+                                    &nbsp;<span class="badge bg-success">Tamamlandı</span>
+                                {% else %}
+                                    &nbsp;<span class="badge bg-warning">Devam Ediyor</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ course.start_date }}</td>
+                            <td>{{ course.end_date }}</td>
+                            <td>
+                                <ol>
+                                    <small>
+                                        {% for pilot in pilots %}
+                                            {% if course in pilot.course.all %}
+                                                <li>
+                                                    {{ pilot.name }}
+                                                    &nbsp;<span class="badge bg-info">{{ pilot.level|default_if_none:"" }}</span>
+                                                </li>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </small>
+                                </ol>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-info-circle me-1"></i>
+            Açıklamalar
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6 col-lg-4 mb-2">
+                    <a href="#" class="btn btn-primary btn-sm disabled" aria-disabled="true">
+                        <span class="material-symbols-outlined">paragliding</span>
+                    </a>
+                    YpForum profili
+                </div>
+                <div class="col-md-6 col-lg-4 mb-2">
+                    <a href="#" class="btn btn-primary btn-sm disabled" aria-disabled="true">
+                        <span class="material-symbols-outlined">Edit</span>
+                    </a>
+                    Güncelle
+                </div>
+                <div class="col-md-6 col-lg-4 mb-2">
+                    <a href="#" class="btn btn-danger btn-sm disabled" aria-disabled="true">
+                        <span class="material-symbols-outlined">Delete</span>
+                    </a>
+                    Sil
+                </div>
+                <div class="col-md-6 col-lg-4 mb-2">
+                    <a href="#" class="btn btn-primary btn-sm disabled" aria-disabled="true">
+                        <span class="material-symbols-outlined">School</span>
+                    </a>
+                    Kurs Ata
+                </div>
+                <div class="col-md-6 col-lg-4 mb-2">
+                    <a href="#" class="btn btn-info btn-sm disabled" aria-disabled="true">
+                        <span class="material-symbols-outlined">flight</span>
+                    </a>
+                    Uçuşları Görüntüle
+                </div>
+                <div class="col-md-6 col-lg-4 mb-2">
+                    <a href="#" class="btn btn-success btn-sm disabled" aria-disabled="true">
+                        <span class="material-symbols-outlined">search</span>
+                    </a>
+                    Detayları Görüntüle
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}

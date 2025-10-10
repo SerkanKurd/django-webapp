@@ -1,0 +1,28 @@
+{% extends "master.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}
+    {{ title }}  
+{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+    <h1 class="mt-4">{{ title }}</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a href="{% url 'homepage:index' %}">Ana Sayfa</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'paragliding:index' %}">Genel Liste</a></li>
+        <li class="breadcrumb-item active">{{ title }}</li>
+    </ol>
+    {% comment %} <div class="card mb-4">
+        <div class="card-body">
+            <a href ="https://www.ypforum.com/leonardo/pilot/0_6573" target="_blank">
+                https://www.ypforum.com/leonardo/pilot/0_6573</a> 
+                şeklinde pilotun profil linkini ekleyin. Ad ve Soyad varsa otomatik olarak alınacaktır.
+        </div>
+    </div> {% endcomment %}
+    <div class="card mb-4">
+        <div class="card-body">
+            {% crispy form %}
+        </div>
+    </div>
+{% endblock %}

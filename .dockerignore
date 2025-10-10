@@ -1,0 +1,21 @@
+# Docker
+Dockerfile
+docker-compose.yml
+
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__/
+*.pyc
+
+# Database
+dbdata/
+
+# Environment file
+.env
+
+# Misc
+.DS_Store
+.venv

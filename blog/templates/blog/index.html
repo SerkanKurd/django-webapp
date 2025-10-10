@@ -1,0 +1,32 @@
+{% extends "master.html" %}
+
+{% block title %}
+    AI Blog
+{% endblock %}
+
+{% block content %}
+    <h1 class="mt-4">Yapay Zeka Destekli Blog</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a href="{% url 'homepage:index' %}">Ana Sayfa</a></li>
+        <li class="breadcrumb-item active">YZ Blog</li>
+    </ol>
+    {% for post in posts %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h2 class="h4">{{ post.title }}</h2>
+            </div>
+            <div class="card-body">
+                <p class="card-text"><small class="text-muted">By {{ post.author }} on {{ post.time|date:"F d, Y" }}</small></p>
+                {% if post.translated %}
+                    {{ post.translated|safe }}
+                {% else %}
+                    <p>{{ post.contentsnippet }}</p>
+                {% endif %}
+            </div>
+            <div class="card-footer">
+                <a href="{{ post.link }}" class="btn btn-primary btn-sm" target="_blank">Orjinal Yazı</a>
+                {% if post.wordpress_url %}<a href="{{ post.wordpress_url }}" class="btn btn-secondary btn-sm" target="_blank">Çevirisini Oku</a>{% endif %}
+            </div>
+        </div>
+    {% endfor %}
+{% endblock %}
