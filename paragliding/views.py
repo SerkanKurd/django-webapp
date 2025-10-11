@@ -1,3 +1,4 @@
+import profile
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -124,7 +125,12 @@ def pilot_view(request, pilot_id=None):
                     # Set manager for new pilot
                     pilot.manager = request.user
                 pilot.save()
-
+                get_pilot_flights_data.apply_async(
+                    args=[pilot.profile_url, pilot.id],
+                    countdown=5
+                )  # pyright: ignore[reportCallIssue]
+                messages.success(
+                    request, f"{pilot.name} pilotu için uçuş verileri güncelleniyor. Bu işlem biraz zaman alabilir.")
                 if not instance:
                     messages.success(
                         request,
@@ -180,29 +186,24 @@ def apply_course_view(request, pilot_id=None):
 @login_required
 def course_detail_view(request, course_id=None):
     try:
-        # Use prefetch_related to efficiently fetch pilots associated with the course
         course = models.Course.objects.get(id=course_id, manager=request.user)
     except models.Course.DoesNotExist:
         messages.error(
             request, "Kurs bulunamadı veya bu kursa erişim yetkiniz yok.")
         return redirect('paragliding:index')
 
-    # Get all pilots for the course, ordered by name
     pilots_in_course = course.pilot_set.all().order_by('name')
 
-    # Get all relevant flights for these pilots within the course date range
     flight_data = models.FlightData.objects.filter(
         pilot__in=pilots_in_course,
         flight_date__gte=course.start_date,
         flight_date__lte=course.end_date
     ).order_by('flight_date')
 
-    # Process flight data and attach statistics to each pilot object
     for pilot in pilots_in_course:
         pilot_flight_data = flight_data.filter(pilot=pilot)
         pilot.total_flights = pilot_flight_data.count()
 
-        # Aggregate total duration and distance correctly
         stats = pilot_flight_data.aggregate(total_duration=Sum(
             'duration'), total_distance=Sum('distance'))
         pilot.total_duration = stats.get('total_duration') or timedelta(0)
@@ -249,7 +250,7 @@ def pilot_flight_view(request, pilot_id):
             return redirect('paragliding:pilot_flight_view', pilot_id=pilot.id)
 
     flights = models.FlightData.objects.filter(
-        pilot=pilot
+        profil_url=pilot.profile_url
     ).order_by('-flight_date')
 
     context = {

@@ -34,9 +34,19 @@ services:
       timeout: 5s
       retries: 5
 
-  celery:
+  celery-worker:
     build: .
     command: celery -A myweb worker -l info
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+
+  celery-beat:
+    build: .
+    command: celery -A myweb beat -l info
     env_file:
       - .env
     volumes:

@@ -39,14 +39,9 @@ class Pilot(models.Model):
     def __str__(self):
         return self.name or f"Pilot: {self.name} - {self.manager}"
 
-    # def __init__(self, *args, **kwargs):
-    #     super().__init__(*args, **kwargs)
-    #     if not self.level:
-    #         self.level = ""
-
 
 class FlightData(models.Model):
-    pilot = models.ForeignKey(Pilot, on_delete=models.CASCADE)
+    pilot_name = models.CharField(max_length=250, blank=True, null=True)
     profil_url = models.CharField(max_length=250, blank=True, null=True)
     flight_date = models.DateTimeField(blank=True, null=True)
     takeoff_name = models.CharField(max_length=50, blank=True, null=True)
@@ -76,6 +71,7 @@ class FlightData(models.Model):
         max_length=255, unique=True, null=True, blank=True)
     file_name = models.CharField(max_length=200, blank=True, null=True)
     file_content = models.BinaryField(null=True, blank=True)
+    isupdate = models.BooleanField(default=True)
 
     def __str__(self):
-        return f"{self.pilot.name} - {self.flight_date} - {self.file_name}"
+        return f"{self.pilot_name} - {self.flight_date} - {self.file_name}"

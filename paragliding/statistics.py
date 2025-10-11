@@ -32,8 +32,6 @@ def get_general_statistics():
     pilots_by_level = list(models.Pilot.objects.values(
         'level').annotate(count=Count('*')).order_by('level'))
     
-    print(pilots_by_level)
-
     return {
         'total_pilots': total_pilots,
         'total_flights': total_flights,

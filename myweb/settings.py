@@ -95,16 +95,18 @@ WSGI_APPLICATION = 'myweb.wsgi.application'
 #     }
 # }
 
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "ypportal",
-        "USER": "wolf",
-        "PASSWORD": "wolf.3261",
-        "HOST": "192.168.1.200",
-        "PORT": "5433",
+        "NAME": os.environ.get("DB_NAME"),
+        "USER": os.environ.get("DB_USER"),
+        "PASSWORD": os.environ.get("DB_PASSWORD"),
+        "HOST": os.environ.get("DB_HOST"),
+        "PORT": os.environ.get("DB_PORT"),
     }
 }
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -175,12 +177,13 @@ CELERY_RESULT_SERIALIZER = 'json'
 CELERY_BEAT_SCHEDULE = {
     'example1': {
         'task': 'myweb.tasks.example',
-        'schedule': crontab(hour=19, minute=30),
-        'args': ('https://orneksite.com/veri',),
+        'schedule': crontab(hour=00, minute=00),
+        'args': ('test celery beat timer ...:...',),
     },
 
     'example2': {
         'task': 'myweb.tasks.example',
-        'schedule': timedelta(minutes=120),
+        'schedule': timedelta(minutes=240),
+        'args': ('test celery beat timer',),
     },
 }
