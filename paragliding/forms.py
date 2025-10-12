@@ -3,7 +3,7 @@ from django.utils.formats import date_format
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Fieldset, Submit, HTML
 from . import models
-from .get_from_ypforum import get_name
+from .extentions.get_ypforum import get_name
 
 
 class CourseForm(forms.ModelForm):

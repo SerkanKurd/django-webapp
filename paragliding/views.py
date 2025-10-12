@@ -195,25 +195,21 @@ def course_detail_view(request, course_id=None):
     pilots_in_course = course.pilot_set.all().order_by('name')
 
     flight_data = models.FlightData.objects.filter(
-        pilot__in=pilots_in_course,
         flight_date__gte=course.start_date,
         flight_date__lte=course.end_date
     ).order_by('flight_date')
 
     for pilot in pilots_in_course:
-        pilot_flight_data = flight_data.filter(pilot=pilot)
-        pilot.total_flights = pilot_flight_data.count()
+        pilot.flight_data = flight_data.filter(profile_url=pilot.profile_url)
 
-        stats = pilot_flight_data.aggregate(total_duration=Sum(
+        stats = pilot.flight_data.aggregate(total_duration=Sum(
             'duration'), total_distance=Sum('distance'))
         pilot.total_duration = stats.get('total_duration') or timedelta(0)
         pilot.total_distance = stats.get('total_distance') or 0
-        pilot.flights_in_course = pilot_flight_data
 
     context = {
         'course': course,
         'pilots': pilots_in_course,
-        'title': f"Kurs Detayı: {course.course_name}"
     }
     return render(request, 'paragliding/course_detail.html', context)
 
@@ -250,7 +246,7 @@ def pilot_flight_view(request, pilot_id):
             return redirect('paragliding:pilot_flight_view', pilot_id=pilot.id)
 
     flights = models.FlightData.objects.filter(
-        profil_url=pilot.profile_url
+        profile_url=pilot.profile_url
     ).order_by('-flight_date')
 
     context = {

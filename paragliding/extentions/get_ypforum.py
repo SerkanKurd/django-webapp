@@ -1,14 +1,14 @@
 import requests
 from bs4 import BeautifulSoup
-from . import models
+from paragliding import models
 from datetime import datetime, timedelta
 from django.utils import timezone
 from decimal import Decimal, InvalidOperation
 
 
-def get_name(profil_url: str):
+def get_name(profile_url: str):
     try:
-        response = requests.get(profil_url)
+        response = requests.get(profile_url)
         soup = BeautifulSoup(response.text, "html.parser")
     except Exception:
         return ""
@@ -22,9 +22,9 @@ def get_name(profil_url: str):
     return ""
 
 
-def get_page_data(profil_url, flights_url) -> dict[int, dict]:
+def get_page_data(profile_url, flights_url) -> dict[int, dict]:
     pilot_flights = models.FlightData.objects.filter(
-        profil_url=profil_url
+        profile_url=profile_url
     ).order_by('-flight_date')
 
     def data_clean(data):
@@ -70,13 +70,13 @@ def get_page_data(profil_url, flights_url) -> dict[int, dict]:
     return flights_data
 
 
-def get_flights_data(profil_url: str):
-    pilot_id = profil_url.split("/")[-1]
+def get_flights_data(profile_url: str):
+    pilot_id = profile_url.split("/")[-1]
     fligts_data_all = {}
     page_num = 1
     while True:
         fligts_url = f"https://www.ypforum.com/leonardo/tracks/world/alltimes/brand:all,cat:0,class:all,xctype:all,club:all,pilot:{pilot_id},takeoff:all&sortOrder=DATE&page_num={str(page_num)}"
-        fligts_data = get_page_data(profil_url, fligts_url)
+        fligts_data = get_page_data(profile_url, fligts_url)
         if not fligts_data:
             break
         fligts_data_all.update(fligts_data)
@@ -85,16 +85,7 @@ def get_flights_data(profil_url: str):
     return fligts_data_all
 
 
-def fligts_data_to_db(fligts_data_all, profil_url):
-    try:
-        print(f"Pilot {profil_url} found. Processing flights.")
-    except models.Pilot.DoesNotExist:
-        print(f"Pilot with {profil_url} not found in database.")
-        return
-    except models.Pilot.MultipleObjectsReturned:
-        print(
-            f"Multiple pilots found for {profil_url}. Aborting.")
-        return
+def fligts_data_to_db(fligts_data_all, profile_url):
     pilot_name = ""
     for flight_id, data in fligts_data_all.items():
         try:
@@ -154,7 +145,7 @@ def fligts_data_to_db(fligts_data_all, profil_url):
             flight_url=data['flight_url'],
             defaults={
                 'pilot_name': pilot_name,
-                'profil_url': profil_url,
+                'profile_url': profile_url,
                 'flight_date': flight_date,
                 'takeoff_name': data['takeoff_name'],
                 'duration': duration,
@@ -170,9 +161,9 @@ def fligts_data_to_db(fligts_data_all, profil_url):
     return print(f"Finished processing flights for pilot {pilot_name}.")
 
 
-def main(profil_url: str):
-    fligts_data_all = get_flights_data(profil_url)
-    fligts_data_to_db(fligts_data_all, profil_url)
+def main(profile_url: str):
+    fligts_data_all = get_flights_data(profile_url)
+    fligts_data_to_db(fligts_data_all, profile_url)
 
 
 if __name__ == "__main__":

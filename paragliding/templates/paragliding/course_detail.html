@@ -2,7 +2,7 @@
 {% load duration_filters %}
 
 {% block title %}
-    {{ title }}
+    {{ course.course_name }}
 {% endblock %}
 
 {% block content %}
@@ -68,21 +68,17 @@
                                 {{ pilot.name }}
                                 &nbsp;<span class="badge bg-info">{{ pilot.level|default_if_none:"" }}</span>
                             </td>
-                            <td>{{ pilot.total_flights }}</td>
+                            <td>{{ pilot.flight_data.count }} </td>
                             <td>{{ pilot.total_duration|format_duration }}</td>
                             <td>{{ pilot.total_distance|floatformat:2 }}</td>
                             <td>
-                                {% if pilot.flights_in_course %}
-                                    <ol class="mb-0">
-                                        <small>
-                                            {% for flight in pilot.flights_in_course %}
-                                                <li>{{ flight.flight_date|date:"d.m.Y" }} - {{ flight.takeoff_name }} ({{ flight.duration }}, {{ flight.distance|floatformat:2 }} km)</li>
-                                            {% endfor %}
-                                        </small>
-                                    </ol>
-                                {% else %}
-                                    -
-                                {% endif %}
+                                <ol class="mb-0">
+                                    <small>
+                                        {% for flight in pilot.flight_data %}
+                                            <li>{{ flight.flight_date|date:"d.m.Y" }} - {{ flight.takeoff_name }} ({{ flight.duration }}, {{ flight.distance|floatformat:2 }} km)</li>
+                                        {% endfor %}
+                                    </small>
+                                </ol>
                             </td>
                         </tr>
                     {% endfor %}
