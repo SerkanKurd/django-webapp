@@ -1,5 +1,6 @@
 {% extends "master.html" %}
 {% load crispy_forms_tags %}
+{% load duration_filters %}
 
 {% block title %}
     Genel Liste
@@ -38,18 +39,12 @@
                     <tr>
                         <th></th>
                         <th>Pilot</th>
-                        <th>Seviye</th>
-                        <th>Kurs</th>
+                        <th>Uçuş Sayısı</th>
+                        <th>Uçuş Saati</th>
+                        <th>Mesafe</th>
+                        <th>Kursları</th>
                     </tr>
                 </thead>
-                <tfoot>
-                    <tr>
-                        <th></th>
-                        <th>Pilot</th>
-                        <th>Seviye</th>
-                        <th>Kurs</th>
-                    </tr>
-                </tfoot>
                 <tbody>
                     {% for pilot in pilots %}
                         <tr>
@@ -73,8 +68,13 @@
                                     </a>
                                 </form>
                             </td>
-                            <td>{{ pilot.name }}</td>
-                            <td>{{ pilot.level }}</td>
+                            <td>
+                                {{ pilot.name }}
+                                &nbsp;<span class="badge bg-info">{{ pilot.level|default_if_none:"" }}</span>
+                            </td>
+                            <td>{{ pilot.flight_count }}</td>
+                            <td>{{ pilot.total_duration|format_duration }}</td>
+                            <td>{{ pilot.total_distance|floatformat:2 }}</td>
                             <td>
                                 {% for course in pilot.course.all %}
                                 {{ course.course_name }} ({{ course.start_date }})
@@ -100,7 +100,7 @@
         </div>
         <div class="card-body">
                 <table id="datatableCourses" class="datatable-init">
-                <tfoot>
+                <thead>
                     <tr>
                         <th></th>
                         <th>Kurs Adı</th>
@@ -108,7 +108,7 @@
                         <th>Bitiş Tarihi</th>
                         <th>Kursiyerler</th>
                     </tr>
-                </tfoot>
+                </thead>
                 <tbody>
                     {% for course in courses %}
                         <tr>

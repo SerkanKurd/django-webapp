@@ -11,17 +11,18 @@ def get_pilot_statistics(pilot_id):
     except models.Pilot.DoesNotExist:
         return None
 
-    flights = models.FlightData.objects.filter(pilot=pilot)
-    total_flights = flights.count()
-    total_duration = flights.aggregate(total=Sum('duration'))[
-        'total'] or timedelta(0)
-    total_distance = flights.aggregate(total=Sum('distance'))['total'] or 0
+    # Combine multiple queries into a single, more efficient aggregation.
+    stats = models.FlightData.objects.filter(pilot=pilot).aggregate(
+        total_flights=Count('id'),
+        total_duration=Sum('duration'),
+        total_distance=Sum('distance')
+    )
 
     return {
         'pilot': pilot,
-        'total_flights': total_flights,
-        'total_duration': total_duration,
-        'total_distance': total_distance,
+        'total_flights': stats.get('total_flights') or 0,
+        'total_duration': stats.get('total_duration') or timedelta(0),
+        'total_distance': stats.get('total_distance') or 0,
     }
 
 
@@ -29,8 +30,9 @@ def get_general_statistics():
     total_pilots = models.Pilot.objects.count()
     total_flights = models.FlightData.objects.count()
     total_courses = models.Course.objects.count()
-    pilots_by_level = list(models.Pilot.objects.values(
-        'level').annotate(count=Count('*')).order_by('level'))
+    # Exclude pilots with no level set for cleaner chart data.
+    pilots_by_level = list(models.Pilot.objects.exclude(level__isnull=True).exclude(level='').values(
+        'level').annotate(count=Count('id')).order_by('level'))
     
     return {
         'total_pilots': total_pilots,

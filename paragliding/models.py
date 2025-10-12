@@ -1,3 +1,4 @@
+from typing import Any
 from django.db import models
 from django.conf import settings
 from django.utils.formats import date_format
@@ -21,7 +22,8 @@ class Course(models.Model):
 
 class Pilot(models.Model):
     name = models.CharField(max_length=50, blank=True, null=True)
-    profile_url = models.URLField(max_length=255, null=True, blank=True)
+    profile_url = models.URLField(
+        max_length=255, null=True, blank=True)
     level = models.CharField(
         max_length=2,
         choices=(
@@ -30,20 +32,17 @@ class Pilot(models.Model):
         blank=True, null=True
     )
     course = models.ManyToManyField(Course)
-    manager = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-
-    class Meta:
-        unique_together = ('profile_url', 'manager')
+    manager = models.ManyToManyField(
+        settings.AUTH_USER_MODEL)
 
     def __str__(self):
-        return self.name or f"Pilot: {self.name} - {self.manager}"
+        return f"Pilot: {self.id} - {self.name} - {self.manager}"
 
 
 class FlightData(models.Model):
-    pilot_name = models.CharField(max_length=250, blank=True, null=True)
-    profile_url = models.CharField(max_length=250, blank=True, null=True)
+    pilot = models.ForeignKey(Pilot, on_delete=models.CASCADE)
     flight_date = models.DateTimeField(blank=True, null=True)
+    flight_date_str = models.CharField(max_length=50, blank=True, null=True)
     takeoff_time = models.DateTimeField(blank=True, null=True)
     takeoff_name = models.CharField(max_length=50, blank=True, null=True)
     landing_time = models.DateTimeField(blank=True, null=True)
@@ -85,7 +84,10 @@ class FlightData(models.Model):
     file_name = models.CharField(max_length=200, blank=True, null=True)
     file_content = models.BinaryField(null=True, blank=True)
 
-    def __str__(self):
-        return f"{self.pilot_name} - {self.flight_date} - {self.file_name}"
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        if self.flight_date:
+            self.flight_date_str = date_format(self.flight_date)
 
-    
+    def __str__(self):
+        return f"{self.flight_date} - {self.takeoff_name}"

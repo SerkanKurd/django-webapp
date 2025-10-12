@@ -10,7 +10,7 @@ import json
 def index(request):
     stats = get_general_statistics()
     blog_post_count = Posts.objects.count()
-    flights_last_30_days = get_flights_per_day(days=30)
+    flights_last_30_days = get_flights_per_day(days=365)
 
     context = {
         "stats": stats,
@@ -18,8 +18,6 @@ def index(request):
         "flights_chart_data": json.dumps(flights_last_30_days),
     }
     return render(request, "index.html", context)
-
-
 
 
 def log_out(request):

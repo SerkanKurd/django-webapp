@@ -1,5 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
+import manage
 from paragliding import models
 from datetime import datetime, timedelta
 from django.utils import timezone
@@ -22,10 +23,9 @@ def get_name(profile_url: str):
     return ""
 
 
-def get_page_data(profile_url, flights_url) -> dict[int, dict]:
-    pilot_flights = models.FlightData.objects.filter(
-        profile_url=profile_url
-    ).order_by('-flight_date')
+def get_page_data(pilot_id, flights_url) -> dict[int, dict]:
+    existing_flight_urls = set(models.FlightData.objects.filter(
+        pilot_id=pilot_id).values_list('flight_url', flat=True))
 
     def data_clean(data):
         data = data.replace("\xa0", "")
@@ -64,19 +64,19 @@ def get_page_data(profile_url, flights_url) -> dict[int, dict]:
                            "flight_url": f"https://www.ypforum.com/leonardo/flight/{flight_num}"
                        }
                        }
-        if pilot_flights.filter(flight_url=flight_data[flight_num]['flight_url']).exists():
+        if flight_data[flight_num]['flight_url'] in existing_flight_urls:
             return flights_data
         flights_data.update(flight_data)
     return flights_data
 
 
-def get_flights_data(profile_url: str):
-    pilot_id = profile_url.split("/")[-1]
+def get_flights_data(profile_url: str, pilot_id: int):
+    ypforum_pilot_id = profile_url.split("/")[-1]
     fligts_data_all = {}
     page_num = 1
     while True:
-        fligts_url = f"https://www.ypforum.com/leonardo/tracks/world/alltimes/brand:all,cat:0,class:all,xctype:all,club:all,pilot:{pilot_id},takeoff:all&sortOrder=DATE&page_num={str(page_num)}"
-        fligts_data = get_page_data(profile_url, fligts_url)
+        fligts_url = f"https://www.ypforum.com/leonardo/tracks/world/alltimes/brand:all,cat:0,class:all,xctype:all,club:all,pilot:{ypforum_pilot_id},takeoff:all&sortOrder=DATE&page_num={str(page_num)}"
+        fligts_data = get_page_data(pilot_id, fligts_url)
         if not fligts_data:
             break
         fligts_data_all.update(fligts_data)
@@ -85,8 +85,7 @@ def get_flights_data(profile_url: str):
     return fligts_data_all
 
 
-def fligts_data_to_db(fligts_data_all, profile_url):
-    pilot_name = ""
+def fligts_data_to_db(fligts_data_all, pilot_id: int):
     for flight_id, data in fligts_data_all.items():
         try:
             date_str = data['flight_date'].replace('/', '.')
@@ -139,13 +138,11 @@ def fligts_data_to_db(fligts_data_all, profile_url):
             print(
                 f"Could not parse data for flight {flight_id}: {e}. Skipping.")
             continue
-        pilot_name = data['pilot_name']
         # Create or update flight record
         models.FlightData.objects.update_or_create(
             flight_url=data['flight_url'],
             defaults={
-                'pilot_name': pilot_name,
-                'profile_url': profile_url,
+                'pilot_id': pilot_id,
                 'flight_date': flight_date,
                 'takeoff_name': data['takeoff_name'],
                 'duration': duration,
@@ -157,16 +154,16 @@ def fligts_data_to_db(fligts_data_all, profile_url):
                 'paraglider': data['paraglider'],
             }
         )
-        
-    return print(f"Finished processing flights for pilot {pilot_name}.")
+
+    return print(f"Finished processing flights for pilot ID {pilot_id}.")
 
 
-def main(profile_url: str):
-    fligts_data_all = get_flights_data(profile_url)
-    fligts_data_to_db(fligts_data_all, profile_url)
+def main(profile_url: str, pilot_id: int):
+    fligts_data_all = get_flights_data(profile_url, pilot_id)
+    fligts_data_to_db(fligts_data_all, pilot_id)
 
 
 if __name__ == "__main__":
     # print(get_name("https://www.ypforum.com/leonardo/pilot/0_6573"))
     # print(get_flight_data("0_6573"))
-    print(get_flights_data("https://www.ypforum.com/leonardo/pilot/0_6573"))
+    print(get_flights_data("https://www.ypforum.com/leonardo/pilot/0_6573", 1))

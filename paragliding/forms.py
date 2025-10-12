@@ -2,6 +2,8 @@ from django import forms
 from django.utils.formats import date_format
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Fieldset, Submit, HTML
+
+import manage
 from . import models
 from .extentions.get_ypforum import get_name
 
@@ -25,7 +27,6 @@ class CourseForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
         self.helper = FormHelper()
         self.helper.form_method = 'post'
         self.helper.layout = Layout(
@@ -54,10 +55,10 @@ class PilotForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        self.request = kwargs.pop('request', None)
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = 'post'
-
         self.helper.layout = Layout(
             Fieldset(
                 '',
@@ -82,6 +83,17 @@ class PilotForm(forms.ModelForm):
                     'profile_url', "Profil URL'si hatalı veya geçerli bir isim bulunamadı. Örn: https://www.ypforum.com/leonardo/pilot/0_6573")
             elif not name:
                 cleaned_data['name'] = ypforum_pilot_name
+
+            # Mevcut yöneticinin bu profili zaten ekleyip eklemediğini kontrol et
+            if self.request and self.request.user.is_authenticated:
+                # Düzenleme modunda, mevcut pilot hariç diğerlerini kontrol et
+                existing_pilots = models.Pilot.objects.filter(
+                    manager=self.request.user, profile_url=profile_url)
+                if self.instance and self.instance.pk:
+                    existing_pilots = existing_pilots.exclude(pk=self.instance.pk)
+                
+                if existing_pilots.exists():
+                    self.add_error('profile_url', "Bu pilot zaten listenizde mevcut.")
         return cleaned_data
 
 
@@ -102,7 +114,6 @@ class PilotCourseAssignmentForm(forms.Form):
             self.fields['courses'].queryset = models.Course.objects.filter(
                 manager=user, is_completed=False)
 
-        if pilot:
             self.fields['courses'].initial = pilot.course.all()
 
         self.helper = FormHelper()
@@ -124,20 +135,19 @@ class AllListForm(forms.Form):
     )
 
     def __init__(self, *args, **kwargs):
-        courses_view = [
-            f"{course.course_name} ({date_format(course.start_date)})"
-            for course in models.Course.objects.all()]
-        courses = [course.id for course in models.Course.objects.all()]
-        courses = [""] + courses
-        courses_view = ["Tüm Kurslar"] + courses_view
-        pilots = [pilot.id for pilot in models.Pilot.objects.all()]
-        pilots = [""] + pilots
-        pilots_view = [pilot.name for pilot in models.Pilot.objects.all()]
-        pilots_view = ["Tüm Pilotlar"] + pilots_view
+        user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+
+        pilots_qs = models.Pilot.objects.filter(manager=user) if user else models.Pilot.objects.none()
+        courses_qs = models.Course.objects.filter(manager=user) if user else models.Course.objects.none()
+
+        pilot_choices = [("", "Tüm Pilotlar")] + [(p.id, p.name) for p in pilots_qs]
+        course_choices = [("", "Tüm Kurslar")] + [(c.id, f"{c.course_name} ({date_format(c.start_date)})") for c in courses_qs]
+
+        self.fields['pilot_name'].choices = pilot_choices
+        self.fields['course_name'].choices = course_choices
+
         self.helper = FormHelper()
-        self.fields['pilot_name'].choices = zip(pilots, pilots_view)
-        self.fields['course_name'].choices = zip(courses, courses_view)
         self.helper.form_method = 'get'
         # self.helper.form_show_labels = False
         self.helper.layout = Layout(

@@ -75,7 +75,7 @@
                                 <ol class="mb-0">
                                     <small>
                                         {% for flight in pilot.flight_data %}
-                                            <li>{{ flight.flight_date|date:"d.m.Y" }} - {{ flight.takeoff_name }} ({{ flight.duration }}, {{ flight.distance|floatformat:2 }} km)</li>
+                                            <li>{{ flight.flight_date|date:"d.m.Y" }} - {{ flight.takeoff_name }} ({{ flight.duration|format_duration }}, {{ flight.distance|floatformat:2 }} km)</li>
                                         {% endfor %}
                                     </small>
                                 </ol>

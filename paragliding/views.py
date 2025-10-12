@@ -1,9 +1,9 @@
-import profile
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from datetime import timedelta
 from django.db.models import Sum
+from django.db import transaction
 from . import models
 from django.core.cache import cache
 from . import forms
@@ -12,12 +12,11 @@ from myweb.tasks import get_pilot_flights_data
 
 @login_required
 def index(request):
-    form = forms.AllListForm(request.GET)
+    form = forms.AllListForm(request.GET, user=request.user)
     pilots = models.Pilot.objects.filter(
         manager=request.user
     )
     courses = models.Course.objects.filter(manager=request.user)
-    # courses_pilots = pilots.filter(pilots__in=courses)
 
     if request.GET and form.is_valid():
         pilot_name = form.cleaned_data.get('pilot_name')
@@ -26,13 +25,20 @@ def index(request):
         if pilot_name:
             pilots = pilots.filter(id=pilot_name)
         if course_name:
-            pilots = pilots.filter(id=course_name)
+            courses = courses.filter(id=course_name)
+
+    for pilot in pilots:
+        pilot.flight_count = models.FlightData.objects.filter(
+            pilot=pilot).count()
+        pilot.total_duration = models.FlightData.objects.filter(
+            pilot=pilot).aggregate(total=Sum('duration'))['total']
+        pilot.total_distance =models.FlightData.objects.filter(
+            pilot=pilot).aggregate(total=Sum('distance'))['total']
 
     context = {
         'form': form,
         'pilots': pilots,
         'courses': courses,
-        # 'courses_pilots': courses_pilots,
     }
     return render(request, 'paragliding/index.html', context)
 
@@ -82,7 +88,7 @@ def course_view(request, course_id=None):
                     request,
                     f'"{course.course_name}" isimli kurs başarıyla güncellendi.'
                 )
-            return redirect('paragliding:course_id', course_id=course.id)
+            return redirect('paragliding:index')
     else:
         form = forms.CourseForm(instance=instance)
     context = {"form": form, "title": "Kurs Ekle/Sil"}
@@ -105,70 +111,84 @@ def pilot_view(request, pilot_id=None):
             return redirect('paragliding:index')
 
     if request.method == 'POST':
-        form = forms.PilotForm(request.POST, instance=instance)
+        form = forms.PilotForm(request.POST, instance=instance, request=request)
         submit_value = request.POST.get('submit')
 
         if submit_value == 'Sil' and instance:
             pilot_name = instance.name
-            instance.delete()
+            # Instead of deleting the pilot, just remove the current manager.
+            instance.manager.remove(request.user)
             messages.success(
-                request, f'"{pilot_name}" isimli pilot başarıyla silindi.')
+                request, f'"{pilot_name}" isimli pilot listenizden kaldırıldı.')
             return redirect('paragliding:index')
 
         if submit_value == 'Yeni':
             return redirect('paragliding:pilot')
 
         if form.is_valid():
+            profile_url = form.cleaned_data.get('profile_url')
+
             try:
-                pilot = form.save(commit=False)
-                if not instance:
-                    # Set manager for new pilot
-                    pilot.manager = request.user
-                pilot.save()
-                get_pilot_flights_data.apply_async(
-                    args=[pilot.profile_url, pilot.id],
-                    countdown=5
-                )  # pyright: ignore[reportCallIssue]
-                messages.success(
-                    request, f"{pilot.name} pilotu için uçuş verileri güncelleniyor. Bu işlem biraz zaman alabilir.")
-                if not instance:
-                    messages.success(
-                        request,
-                        f'"{pilot.name}" isimli pilot başarıyla oluşturuldu!'
+                with transaction.atomic():
+                    # Check if a pilot with this profile_url already exists.
+                    pilot, created = models.Pilot.objects.get_or_create(
+                        profile_url=profile_url,
+                        defaults={'name': form.cleaned_data.get(
+                            'name'), 'level': form.cleaned_data.get('level')}
                     )
-                else:
+
+                    # Add the current user as a manager to the existing or new pilot.
+                    pilot.manager.add(request.user)
+
+                    # If the pilot was newly created, update other fields from the form.
+                    if not created:
+                        pilot.name = form.cleaned_data.get('name', pilot.name)
+                        pilot.level = form.cleaned_data.get(
+                            'level', pilot.level)
+                        pilot.save()
+
+                    # Asynchronously fetch flight data
+                    if pilot.profile_url:
+                        get_pilot_flights_data.apply_async(
+                            args=[pilot.profile_url, pilot.id],
+                            countdown=5
+                        ) # pyright: ignore[reportCallIssue]
+                        messages.info(
+                            request, f"{pilot.name} için uçuş verileri arka planda güncelleniyor.")
+
                     messages.success(
-                        request,
-                        f'"{pilot.name}" isimli pilot başarıyla güncellendi.'
-                    )
-                return redirect('paragliding:pilot_id', pilot_id=pilot.id)
-            except Exception:
-                messages.error(
-                    request, "Bu profil URL'si bu yönetici için zaten kayıtlı.")
-                # Stay on the same page (creation or update) by re-rendering with the form
+                        request, f'"{pilot.name}" isimli pilot başarıyla kaydedildi.')
+                    return redirect('paragliding:index')
+            except Exception as e:
+                messages.error(request, f"Bir hata oluştu: {e}")
                 return render(request, 'paragliding/data_enter.html', {'form': form, "title": "Pilot Ekle/Sil"})
     else:
-        form = forms.PilotForm(instance=instance)
+        form = forms.PilotForm(instance=instance, request=request)
 
     context = {"form": form, "title": "Pilot Ekle/Sil"}
     return render(request, 'paragliding/data_enter.html', context)
 
 
 @login_required
-def apply_course_view(request, pilot_id=None):
-    pilot = models.Pilot.objects.filter(
-        id=pilot_id, manager=request.user).first()
-    if not pilot:
+def apply_course_view(request, pilot_id):
+    try:
+        pilot = models.Pilot.objects.get(id=pilot_id, manager=request.user)
+    except models.Pilot.DoesNotExist:
         messages.error(
             request, "Pilot bulunamadı veya bu pilota erişim yetkiniz yok.")
         return redirect('paragliding:index')
 
+    courses_all = models.Course.objects.filter(manager=request.user)
     if request.method == 'POST':
         form = forms.PilotCourseAssignmentForm(
             request.POST, user=request.user, pilot=pilot)
         if form.is_valid():
             selected_courses = form.cleaned_data['courses']
-            pilot.course.set(selected_courses)
+            for course in courses_all:
+                if course in selected_courses:
+                    pilot.course.add(course)
+                else:
+                    pilot.course.remove(course)
 
             messages.success(
                 request, f"'{pilot.name}' için kurs atamaları güncellendi.")
@@ -200,7 +220,7 @@ def course_detail_view(request, course_id=None):
     ).order_by('flight_date')
 
     for pilot in pilots_in_course:
-        pilot.flight_data = flight_data.filter(profile_url=pilot.profile_url)
+        pilot.flight_data = flight_data.filter(pilot=pilot)
 
         stats = pilot.flight_data.aggregate(total_duration=Sum(
             'duration'), total_distance=Sum('distance'))
@@ -228,13 +248,10 @@ def pilot_flight_view(request, pilot_id):
 
     if request.method == 'POST':
         if request.POST.get('submit') == "Get_Flights":
-            cache_key = f"flight_update_lock_{pilot.id}"
+            cache_key = f"flight_update_lock_{pilot_id}"
             if cache.get(cache_key):
                 messages.info(
                     request, "Bu pilot için veri çekme işlemi zaten yeni başlatıldı. Lütfen bir dakika sonra tekrar deneyin.")
-            elif not pilot.profile_url:
-                messages.error(
-                    request, f"{pilot.name} için bir profil URL'si tanımlanmamış.")
             else:
                 cache.set(cache_key, True, timeout=600)
                 get_pilot_flights_data.apply_async(
@@ -246,7 +263,7 @@ def pilot_flight_view(request, pilot_id):
             return redirect('paragliding:pilot_flight_view', pilot_id=pilot.id)
 
     flights = models.FlightData.objects.filter(
-        profile_url=pilot.profile_url
+        pilot=pilot
     ).order_by('-flight_date')
 
     context = {
