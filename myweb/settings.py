@@ -167,6 +167,13 @@ MESSAGE_TAGS = {
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'serkankurd@gmail.com'
+EMAIL_HOST_PASSWORD = 'yjki qext fvpf umck'
+
 
 CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')
 CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
@@ -175,15 +182,18 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 
 CELERY_BEAT_SCHEDULE = {
-    'example1': {
-        'task': 'myweb.tasks.example',
-        'schedule': crontab(hour=00, minute=00),
-        'args': ('test celery beat timer ...:...',),
-    },
+    # 'example1': {
+    #     'task': 'myweb.tasks.example',
+    #     'schedule': crontab(hour=00, minute=00),
+    #     'args': ('test celery beat timer ...:...',),
+    # },
 
-    'example2': {
-        'task': 'myweb.tasks.example',
-        'schedule': timedelta(minutes=240),
-        'args': ('test celery beat timer',),
-    },
+    # 'example2': {
+    #     'task': 'myweb.tasks.example',
+    #     'schedule': timedelta(minutes=240),
+    #     'args': ('test celery beat timer',),
+    # },
 }
+
+# Telegram Bot Token
+TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')

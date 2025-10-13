@@ -32,7 +32,7 @@ def index(request):
             pilot=pilot).count()
         pilot.total_duration = models.FlightData.objects.filter(
             pilot=pilot).aggregate(total=Sum('duration'))['total']
-        pilot.total_distance =models.FlightData.objects.filter(
+        pilot.total_distance = models.FlightData.objects.filter(
             pilot=pilot).aggregate(total=Sum('distance'))['total']
 
     context = {
@@ -91,8 +91,13 @@ def course_view(request, course_id=None):
             return redirect('paragliding:index')
     else:
         form = forms.CourseForm(instance=instance)
-    context = {"form": form, "title": "Kurs Ekle/Sil"}
-    return render(request, 'paragliding/data_enter.html', context)
+
+    context = {
+        "form": form,
+        "title": "Kurs Ekle/Sil",
+        "links": [{'url': 'paragliding:index', 'name': 'Genel Liste'}]
+    }
+    return render(request, 'form.html', context)
 
 
 @login_required
@@ -111,7 +116,8 @@ def pilot_view(request, pilot_id=None):
             return redirect('paragliding:index')
 
     if request.method == 'POST':
-        form = forms.PilotForm(request.POST, instance=instance, request=request)
+        form = forms.PilotForm(
+            request.POST, instance=instance, request=request)
         submit_value = request.POST.get('submit')
 
         if submit_value == 'Sil' and instance:
@@ -152,7 +158,7 @@ def pilot_view(request, pilot_id=None):
                         get_pilot_flights_data.apply_async(
                             args=[pilot.profile_url, pilot.id],
                             countdown=5
-                        ) # pyright: ignore[reportCallIssue]
+                        )  # pyright: ignore[reportCallIssue]
                         messages.info(
                             request, f"{pilot.name} için uçuş verileri arka planda güncelleniyor.")
 
@@ -161,12 +167,16 @@ def pilot_view(request, pilot_id=None):
                     return redirect('paragliding:index')
             except Exception as e:
                 messages.error(request, f"Bir hata oluştu: {e}")
-                return render(request, 'paragliding/data_enter.html', {'form': form, "title": "Pilot Ekle/Sil"})
+                return render(request, 'form.html', {'form': form, "title": "Pilot Ekle/Sil"})
     else:
         form = forms.PilotForm(instance=instance, request=request)
 
-    context = {"form": form, "title": "Pilot Ekle/Sil"}
-    return render(request, 'paragliding/data_enter.html', context)
+    context = {
+        "form": form,
+        "title": "Pilot Ekle/Sil",
+        "links": [{'url': 'paragliding:index', 'name': 'Genel Liste'}],
+    }
+    return render(request, 'form.html', context)
 
 
 @login_required
@@ -200,7 +210,7 @@ def apply_course_view(request, pilot_id):
         'form': form,
         'title': f"'{pilot.name}' için Kurs Ata"
     }
-    return render(request, 'paragliding/data_enter.html', context)
+    return render(request, 'form.html', context)
 
 
 @login_required
