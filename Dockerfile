@@ -11,6 +11,7 @@ RUN apt-get update && \
     curl \
     gcc \
     libpq-dev \
+    chromium chromium-driver \
     python3-dev && \
     rm -rf /var/lib/apt/lists/* && \
     apt-get clean && \

@@ -38,7 +38,7 @@ class Pilot(models.Model):
     is_updated = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"Pilot: {self.id} - {self.name} - {self.manager}"
+        return f"Pilot: {self.id} - {self.name}"
 
 
 class FlightData(models.Model):
@@ -92,4 +92,4 @@ class FlightData(models.Model):
             self.flight_date_str = date_format(self.flight_date)
 
     def __str__(self):
-        return f"{self.flight_date} - {self.takeoff_name}"
+        return f"{self.pilot} - {self.flight_date_str} - {self.takeoff_name}"

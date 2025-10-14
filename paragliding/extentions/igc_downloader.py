@@ -6,6 +6,7 @@ from selenium.webdriver.support import expected_conditions as EC
 import os
 import time
 import platform
+import shutil
 from django.shortcuts import render
 from paragliding import models
 
@@ -15,14 +16,11 @@ if platform.system() == "Windows" or platform.system() == "Darwin":
 
 
 def setup():
-    global download_dir
-    download_dir = os.path.abspath("downloads")
     global driver
-
     options = webdriver.ChromeOptions()
-    # options.add_argument("--headless")
-    # options.add_argument("--no-sandbox")
-    # options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
     options.add_experimental_option("prefs", {
         "download.default_directory": download_dir,
         "download.prompt_for_download": False,
@@ -43,7 +41,6 @@ def setup():
 
 def download_igc_file(url: str):
     print(f"Downloading: {url}")
-    setup()
     driver.get(url)
     try:
         wait = WebDriverWait(driver, 10)
@@ -53,7 +50,6 @@ def download_igc_file(url: str):
     except Exception as e:
         print(f"IgcDownloadPos butonu bulunamadı veya tıklanamadı: {e}")
         return
-
     iframe = wait.until(EC.presence_of_element_located(
         (By.ID, "IgcDownloadFrame")))
     driver.switch_to.frame(iframe)
@@ -62,7 +58,6 @@ def download_igc_file(url: str):
         (By.XPATH, "//*[@id='captchaWrapper']/div[5]/div")))
     target = target_element.value_of_css_property("background-position")
     target = target.split("px ")[0]
-
     draggable_objects = wait.until(EC.presence_of_all_elements_located(
         (By.CSS_SELECTOR, "[id^='draggable']")))
     for obj in draggable_objects:
@@ -77,37 +72,61 @@ def download_igc_file(url: str):
             download_link.click()
             time.sleep(0.5)
             break
-    driver.quit()
+
     print(f"Finish: {url}")
+    return upload_file(url)
+
+
+def upload_file(url):
+    print("Uploading file to DB")
+    file = ""
+    for _ in range(5):
+        files = os.listdir(download_dir)
+        if not files:
+            time.sleep(1)
+            continue
+        if len(files) > 1:
+            return
+        file = files[0]
+        if file.endswith(".crdownload"):
+            time.sleep(5)
+        else:
+            break
+
+    if not file or not file.lower().endswith(".igc"):
+        print(f"File not found or not an IGC file: '{file}'")
+        return
+    flight_data = models.FlightData.objects.get(flight_url=url)
+    flight_data.file_name = file
+    with open(os.path.join(download_dir, file), "rb") as f:
+        flight_data.file_content = f.read()
+    flight_data.save()
+    print(f"File uploaded to DB: {file}")
     return
 
 
-def dosya_yukle(request):
-    if request.method == 'POST' and 'dosya' in request.FILES:
-        yuklenen_dosya = request.FILES['dosya']
+def main(url: str):
+    global download_dir
+    flight_id = url.split("/")[-1]
+    download_dir = os.path.abspath(f"downloads/{flight_id}")
+    os.mkdir(download_dir)
+    setup()
 
-        # Dosyayı ikili modda oku
-        dosya_icerigi = yuklenen_dosya.read()
+    try:
+        flight_data = models.FlightData.objects.get(flight_url=url)
+        if flight_data.file_content:
+            print(f"File for {url} already exists in DB. Skipping.")
+            return
 
-        # Modeli oluştur ve kaydet
-        yeni_kayit = UrunResmi(
-            urun_adi="Örnek Ürün",
-            dosya_icerigi=dosya_icerigi,
-            dosya_adi=yuklenen_dosya.name,
-            dosya_tipi=yuklenen_dosya.content_type
-        )
-        yeni_kayit.save()
-        return render(request, 'basarili_sayfa.html')
-
-    return render(request, 'yukleme_formu.html')
-
-
-def find_pilots():
-    pilots = models.Pilot.objects.filter(is_updated=False)
-    print(pilots)
+        download_igc_file(url)
+    except Exception as e:
+        print(f"An error occurred during IGC download for {url}: {e}")
+        raise  # Re-raise the exception to allow Celery to retry
+    finally:
+        shutil.rmtree(download_dir, ignore_errors=True)
+        driver.quit()
 
 
 if __name__ == "__main__":
     url = "https://www.ypforum.com/leonardo/flight/178354"
-    # download_igc_file(url)
-    find_pilots()
+    main(url)

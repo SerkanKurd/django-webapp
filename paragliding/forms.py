@@ -90,10 +90,12 @@ class PilotForm(forms.ModelForm):
                 existing_pilots = models.Pilot.objects.filter(
                     manager=self.request.user, profile_url=profile_url)
                 if self.instance and self.instance.pk:
-                    existing_pilots = existing_pilots.exclude(pk=self.instance.pk)
-                
+                    existing_pilots = existing_pilots.exclude(
+                        pk=self.instance.pk)
+
                 if existing_pilots.exists():
-                    self.add_error('profile_url', "Bu pilot zaten listenizde mevcut.")
+                    self.add_error(
+                        'profile_url', "Bu pilot zaten listenizde mevcut.")
         return cleaned_data
 
 
@@ -138,11 +140,15 @@ class AllListForm(forms.Form):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
 
-        pilots_qs = models.Pilot.objects.filter(manager=user) if user else models.Pilot.objects.none()
-        courses_qs = models.Course.objects.filter(manager=user) if user else models.Course.objects.none()
+        pilots_qs = models.Pilot.objects.filter(
+            manager=user) if user else models.Pilot.objects.none()
+        courses_qs = models.Course.objects.filter(
+            manager=user) if user else models.Course.objects.none()
 
-        pilot_choices = [("", "Tüm Pilotlar")] + [(p.id, p.name) for p in pilots_qs]
-        course_choices = [("", "Tüm Kurslar")] + [(c.id, f"{c.course_name} ({date_format(c.start_date)})") for c in courses_qs]
+        pilot_choices = [("", "Tüm Pilotlar")] + [(p.id, p.name)
+                                                  for p in pilots_qs]
+        course_choices = [("", "Tüm Kurslar")] + [(c.id,
+                                                   f"{c.course_name} ({date_format(c.start_date)})") for c in courses_qs]
 
         self.fields['pilot_name'].choices = pilot_choices
         self.fields['course_name'].choices = course_choices
@@ -162,5 +168,30 @@ class AllListForm(forms.Form):
                  """)
         )
 
+
 class GetIGCFiles(forms.Form):
-    pass
+    pilot_name = forms.ChoiceField(
+        label="Pilot Adı",
+        required=False
+    )
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+
+        pilots_qs = models.Pilot.objects.filter(
+            manager=user) if user else models.Pilot.objects.none()
+        pilot_choices = [("", "Tüm Pilotlar")] + \
+            [(p.id, p.name) for p in pilots_qs]
+        self.fields['pilot_name'].choices = pilot_choices
+
+        self.helper = FormHelper()
+        self.helper.form_method = 'get'
+        # self.helper.form_show_labels = False
+        self.helper.layout = Layout(
+            Fieldset(
+                'Pilot Listesi Filtreleme',
+                'pilot_name',
+            ),
+            Submit('submit', 'İndir', css_class='btn-primary'),
+        )

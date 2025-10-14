@@ -7,7 +7,7 @@ from django.db import transaction
 from . import models
 from django.core.cache import cache
 from . import forms
-from myweb.tasks import get_pilot_flights_data
+from myweb.tasks import get_pilot_flights_data, download_igc_file_task
 
 
 @login_required
@@ -282,3 +282,47 @@ def pilot_flight_view(request, pilot_id):
         'title': f"{pilot.name} - Uçuş Kayıtları"
     }
     return render(request, 'paragliding/pilot_flight_view.html', context)
+
+
+@login_required
+def pilot_flight_data_download(request, pilot_id):
+    try:
+        pilot = models.Pilot.objects.get(
+            id=pilot_id,
+            manager=request.user
+        )
+    except models.Pilot.DoesNotExist:
+        messages.error(
+            request, "Pilot bulunamadı veya bu pilota erişim yetkiniz yok.")
+        return redirect('paragliding:index')
+
+    cache_key = f"igc_download_lock_{pilot_id}"
+    if cache.get(cache_key):
+        messages.warning(
+            request, "Bu pilot için IGC indirme işlemi zaten yeni başlatıldı. Lütfen birkaç dakika sonra tekrar deneyin.")
+        return redirect('paragliding:pilot_flight_view', pilot_id=pilot.id)
+
+    # Find flights for this pilot that don't have the IGC file content
+    flights_to_download = models.FlightData.objects.filter(
+        pilot=pilot,
+        file_content__isnull=True
+    ).exclude(flight_url__isnull=True).exclude(flight_url__exact='')
+
+    if not flights_to_download.exists():
+        messages.info(
+            request, f"{pilot.name} için tüm IGC dosyaları zaten indirilmiş.")
+        return redirect('paragliding:pilot_flight_view', pilot_id=pilot.id)
+
+    print(flights_to_download.count, "flights to download!")
+    countdown = 5
+
+    for flight in flights_to_download:
+        download_igc_file_task.apply_async(
+            args=[flight.flight_url], countdown=countdown)
+        countdown += 5
+
+    # Set a lock to prevent re-triggering for 10 minutes
+    cache.set(cache_key, True, timeout=600)
+    messages.success(
+        request, f"{pilot.name} için {flights_to_download.count()} adet IGC dosyası indirme işlemi arka planda başlatıldı.")
+    return redirect('paragliding:pilot_flight_view', pilot_id=pilot.id)

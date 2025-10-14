@@ -1,76 +1,71 @@
 {% extends "master.html" %}
-{% load crispy_forms_tags %}
+{% load duration_filters %}
 
 {% block title %}
-    {{ pilot.name }} - Uçuş Kayıtları
+    {{ title }}
 {% endblock %}
 
 {% block content %}
-    <h1 class="mt-4">{{ pilot.name }} - Uçuş Kayıtları</h1>
+    <h1 class="mt-4">{{ title }}</h1>
     <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a href="{% url 'homepage:index' %}">Ana Sayfa</a></li>
         <li class="breadcrumb-item"><a href="{% url 'paragliding:index' %}">Genel Liste</a></li>
         <li class="breadcrumb-item active">Uçuş Kayıtları</li>
     </ol>
+    <div class="card mb-4">
+        <div class="card-body">
+            IGC Dosyalarını indirme iki aşamadan oluşur:<br>
+            1.Dosyaların YPForumdan alınması. Alınan dosyaları tablo üzerinde görebilirsiniz.<br>
+            2.Sonra bu dosyaları bilgisayarınıza indirmek için "IGC Dosyalarını İndir" tıkladığınızda tüm dosyalar sıkıştırılarak indirilir.
 
-    <form method="post" class="mb-3">
-        {% csrf_token %}
-        <button type="submit" name="submit" value="Get_Flights" class="btn btn-info btn-sm">
-            <span class="material-symbols-outlined align-middle">flight_takeoff</span> Uçuşları Forumdan Çek
-        </button>
-    </form>
-    <!-- Flights Table -->
+        </div>
+    </div>
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="post" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" name="submit" value="Get_Flights" class="btn btn-primary">
+                    <span class="material-symbols-outlined" style="vertical-align: middle;">sync</span> Uçuş Listesini Güncelle
+                </button>
+            </form>
+            <a href="{% url 'paragliding:pilot_flight_data_download' pilot_id=pilot.id %}" class="btn btn-success">
+                <span class="material-symbols-outlined" style="vertical-align: middle;">download</span> IGC Dosyalarını Al
+            </a>
+            <a href="{% url 'paragliding:pilot_flight_data_download' pilot_id=pilot.id %}" class="btn btn-warning">
+                <span class="material-symbols-outlined" style="vertical-align: middle;">download</span> IGC Dosyalarını İndir
+            </a>
+        </div>
+    </div>
+
     <div class="card mb-4">
         <div class="card-header">
             <i class="fas fa-table me-1"></i>
-            <strong>Uçuşlar</strong>
+            <strong>Uçuşlar ({{ flights.count }})</strong>
         </div>
         <div class="card-body">
             <table id="datatableFlights" class="datatable-init">
                 <thead>
                     <tr>
-                        <th>Uçuş Tarihi</th>
+                        <th>Tarih</th>
                         <th>Kalkış</th>
                         <th>Süre</th>
                         <th>Mesafe (km)</th>
-                        <th>OLC (km)</th>
-                        <th>OLC Puanı</th>
-                        <th>Uçuş Cinsi</th>
-                        <th>Kanat</th>
-                        <th>URL</th>
+                        <th>IGC Dosyası</th>
                     </tr>
-
-
-                    
                 </thead>
-                <tfoot>
-                    <tr>
-                        <th>Uçuş Tarihi</th>
-                        <th>Kalkış</th>
-                        <th>Süre</th>
-                        <th>Mesafe (km)</th>
-                        <th>OLC (km)</th>
-                        <th>OLC Puanı</th>
-                        <th>Uçuş Cinsi</th>
-                        <th>Kanat</th>
-                        <th>URL</th>
-                    </tr>
-                </tfoot>
                 <tbody>
                     {% for flight in flights %}
                         <tr>
                             <td>{{ flight.flight_date|date:"d.m.Y" }}</td>
                             <td>{{ flight.takeoff_name }}</td>
-                            <td>{{ flight.duration }}</td>
-                            <td>{{ flight.distance }}</td>
-                            <td>{{ flight.distance_olc }}</td>
-                            <td>{{ flight.points_olc }}</td>
-                            <td>{{ flight.flight_type }}</td>
-                            <td>{{ flight.paraglider }}</td>
+                            <td>{{ flight.duration|format_duration }}</td>
+                            <td>{{ flight.distance|floatformat:2 }}</td>
                             <td>
-                                {% if flight.flight_url %}
-                                    <a href="{{ flight.flight_url }}" target="_blank">Görüntüle</a>
+                                {% if flight.file_content %}
+                                    {{ flight.file_name }}<br>
+                                    <span class="badge bg-success">Mevcut</span>
                                 {% else %}
-                                    -
+                                    <span class="badge bg-secondary">Yok</span>
                                 {% endif %}
                             </td>
                         </tr>
