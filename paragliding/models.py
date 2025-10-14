@@ -2,6 +2,7 @@ from typing import Any
 from django.db import models
 from django.conf import settings
 from django.utils.formats import date_format
+from myweb.tasks import get_pilot_flights_data
 
 
 class Course(models.Model):
@@ -34,6 +35,7 @@ class Pilot(models.Model):
     course = models.ManyToManyField(Course)
     manager = models.ManyToManyField(
         settings.AUTH_USER_MODEL)
+    is_updated = models.BooleanField(default=False)
 
     def __str__(self):
         return f"Pilot: {self.id} - {self.name} - {self.manager}"

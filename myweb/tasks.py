@@ -1,5 +1,5 @@
 from celery import shared_task
-from paragliding.extentions import get_ypforum
+from paragliding.extentions import get_flight_data
 import time
 
 
@@ -8,7 +8,7 @@ import time
 def get_pilot_flights_data(self, profile_url: str, pilot_id: int):
     print(f"Veri çekme işlemi başladı: {profile_url} for pilot_id: {pilot_id}")
     try:
-        get_ypforum.main(profile_url, pilot_id)
+        get_flight_data.main(profile_url, pilot_id)
         print(f"Veri başarıyla çekildi. Sonuç: {profile_url} for pilot_id: {pilot_id}")
         return {'status': 'success', 'profile_url': profile_url, 'pilot_id': pilot_id}
     except Exception as e:

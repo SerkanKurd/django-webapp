@@ -6,8 +6,8 @@ from selenium.webdriver.support import expected_conditions as EC
 import os
 import time
 import platform
-import requests
-from bs4 import BeautifulSoup
+from django.shortcuts import render
+from paragliding import models
 
 
 if platform.system() == "Windows" or platform.system() == "Darwin":
@@ -18,17 +18,11 @@ def setup():
     global download_dir
     download_dir = os.path.abspath("downloads")
     global driver
-    # if os.path.exists(download_dir):
-    #     files = os.listdir(download_dir)
-    #     for file in files:
-    #         os.remove(os.path.join(download_dir, file))
-    #         print(file, "deleted")
-    # os.makedirs(download_dir, exist_ok=True)
 
     options = webdriver.ChromeOptions()
-    options.add_argument("--headless")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
+    # options.add_argument("--headless")
+    # options.add_argument("--no-sandbox")
+    # options.add_argument("--disable-dev-shm-usage")
     options.add_experimental_option("prefs", {
         "download.default_directory": download_dir,
         "download.prompt_for_download": False,
@@ -48,6 +42,8 @@ def setup():
 
 
 def download_igc_file(url: str):
+    print(f"Downloading: {url}")
+    setup()
     driver.get(url)
     try:
         wait = WebDriverWait(driver, 10)
@@ -74,79 +70,44 @@ def download_igc_file(url: str):
             "background-position").split("px ")[0]
         if target == obj_pos:
             obj.click()
+            time.sleep(0.5)
             download_link = wait.until(
                 EC.element_to_be_clickable((By.ID, "igcLink")))
             time.sleep(0.5)
             download_link.click()
             time.sleep(0.5)
             break
+    driver.quit()
+    print(f"Finish: {url}")
     return
 
 
-def get_igc_files(igc_links: list) -> list[str]:
-    before_download = os.listdir(download_dir)
-    after_download = []
-    for igc_link in igc_links:
-        print(f"Start: {igc_link}")
-        if igc_link:
-            try:
-                download_igc_file(igc_link)
-                print(f"Finished: {igc_link}")
-            except Exception:
-                download_igc_file(igc_link)
-                print(f"Failed!: {igc_link}")
-                continue
-    driver.quit()
-    after_download = os.listdir(download_dir)
-    downloaded_files = [
-        file for file in after_download if file not in before_download]
-    print(downloaded_files)
-    return downloaded_files
+def dosya_yukle(request):
+    if request.method == 'POST' and 'dosya' in request.FILES:
+        yuklenen_dosya = request.FILES['dosya']
+
+        # Dosyayı ikili modda oku
+        dosya_icerigi = yuklenen_dosya.read()
+
+        # Modeli oluştur ve kaydet
+        yeni_kayit = UrunResmi(
+            urun_adi="Örnek Ürün",
+            dosya_icerigi=dosya_icerigi,
+            dosya_adi=yuklenen_dosya.name,
+            dosya_tipi=yuklenen_dosya.content_type
+        )
+        yeni_kayit.save()
+        return render(request, 'basarili_sayfa.html')
+
+    return render(request, 'yukleme_formu.html')
 
 
-def get_igc_links(url: str) -> dict[str, list[str]]:
-    data = {}
-    response = requests.get(url)
-    soup = BeautifulSoup(response.text, "html.parser")
-
-    if response.status_code != 200:
-        raise Exception("Failed to retrieve the page")
-
-    rows = soup.select('[class^="l_row"]')
-    for row in rows:
-        # Use select_one to get a single element, as .select() returns a list.
-        pilot_name_element = row.select_one('.pilotLink')
-        takeoff_name_element = row.select_one('.takeoffLink')
-        date_element = row.select_one('.dateString')
-        pilot_name = pilot_name_element.get_text(strip=True)
-        takeoff_name = takeoff_name_element.get_text(strip=True)
-        flight_link = f"https://www.ypforum.com/leonardo/flight/{int(
-            row.get("id").replace("row_", "").strip())}"
-        flight_date = date_element.get_text(strip=True).replace("/", ".")
-
-        data[flight_link] = [pilot_name, takeoff_name, flight_date]
-    return data
-
-
-def main(url: str = "",
-         *,
-         download_links: list = [],
-         download_limit: int = 10
-         ) -> list[str]:
-    if not url and not download_links:
-        raise ValueError("URL ve indirme bağlantıları boş olamaz.")
-    if url:
-        download_links = list(get_igc_links(url).keys())
-    if len(download_links) > download_limit:
-        download_links = download_links[:download_limit]
-
-    setup()
-    downloaded_files = get_igc_files(download_links)
-    return downloaded_files
+def find_pilots():
+    pilots = models.Pilot.objects.filter(is_updated=False)
+    print(pilots)
 
 
 if __name__ == "__main__":
-    # url = "https://www.ypforum.com/leonardo/tracks/world/2025.05/brand:all,cat:1,class:all,xctype:all,club:all,pilot:0_6573,takeoff:all"
-    # url = "https://www.ypforum.com/leonardo/tracks/world/alltimes/"
-    url="https://www.ypforum.com/leonardo/tracks/world/2025.10.02/brand:all,cat:0,class:all,xctype:all,club:all,pilot:0_0,takeoff:all"
-    print(main(url))
+    url = "https://www.ypforum.com/leonardo/flight/178354"
+    # download_igc_file(url)
+    find_pilots()

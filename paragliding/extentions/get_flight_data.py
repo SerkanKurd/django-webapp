@@ -1,6 +1,5 @@
 import requests
 from bs4 import BeautifulSoup
-import manage
 from paragliding import models
 from datetime import datetime, timedelta
 from django.utils import timezone

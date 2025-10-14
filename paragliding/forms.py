@@ -5,7 +5,7 @@ from crispy_forms.layout import Layout, Fieldset, Submit, HTML
 
 import manage
 from . import models
-from .extentions.get_ypforum import get_name
+from .extentions.get_flight_data import get_name
 
 
 class CourseForm(forms.ModelForm):
@@ -161,3 +161,6 @@ class AllListForm(forms.Form):
                  <a href="{% url 'paragliding:index' %}" class="btn btn-primary">Temizle</a>
                  """)
         )
+
+class GetIGCFiles(forms.Form):
+    pass
