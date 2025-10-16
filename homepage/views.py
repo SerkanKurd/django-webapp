@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import logout, login, authenticate
 from django.contrib import messages
+from django.contrib.auth.models import User
 from django.core.mail import send_mail
 from blog.models import Posts
 from . import forms
@@ -27,17 +28,63 @@ def log_out(request):
 
 
 def log_in(request):
-    form = forms.LoginForm(request.POST)
-    if form.is_valid():
-        username = form.cleaned_data["username"]
-        password = form.cleaned_data["password"]
-        user = authenticate(request, username=username, password=password)
-        if user is not None:
-            login(request, user)
-            return render(request, "index.html")
-        else:
-            return render(request, 'accounts/login.html', {'form': form})
-    return render(request, 'accounts/login.html', {'form': form})
+    if request.method == 'POST':
+        form = forms.LoginForm(request.POST)
+        if form.is_valid():
+            username = form.cleaned_data["username"]
+            password = form.cleaned_data["password"]
+            user = authenticate(request, username=username, password=password)
+            if user is not None:
+                login(request, user)
+                messages.success(
+                    request, f"{user.username} kullanıcı adı ile giriş yapıldı!")
+                return redirect('homepage:index')
+            else:
+                form.add_error(None, "Kullanıcı adı veya şifre yanlış.")
+    else:
+        form = forms.LoginForm()
+
+    context = {
+        'form': form,
+        'title': 'Giriş Yap',
+    }
+    return render(request, 'accounts/login.html', context)
+
+
+def register(request):
+    if request.method == 'POST':
+        form = forms.RegisterForm(request.POST)
+        if form.is_valid():
+            username = form.cleaned_data.get('username')
+            password = form.cleaned_data.get('password')
+            email = form.cleaned_data.get('user_mail')
+
+            try:
+                User.objects.create_user(username=username, password=password, email=email)
+
+                # Send confirmation email
+                subject = 'Hesabınız Başarıyla Oluşturuldu'
+                body = f'Merhaba {username},\n\nWeb sitemize kaydınız başarıyla tamamlanmıştır. Hoş geldiniz!'
+                send_mail(
+                    subject,
+                    body,
+                    "serkankurd@gmail.com",  # It's best to use settings.DEFAULT_FROM_EMAIL
+                    [email],
+                    fail_silently=False,
+                )
+                messages.success(request, "Hesabınız başarıyla oluşturuldu. Şimdi giriş yapabilirsiniz.")
+            except Exception as e:
+                messages.error(request, f"Kayıt sırasında bir hata oluştu: {e}")
+
+            return redirect('homepage:index')
+    else:
+        form = forms.RegisterForm()
+
+    context = {
+        'form': form,
+        'title': 'Kayıt',
+    }
+    return render(request, 'accounts/register.html', context)
 
 
 def contact_form(request):
