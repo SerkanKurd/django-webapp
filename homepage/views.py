@@ -2,7 +2,9 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import logout, login, authenticate
 from django.contrib import messages
 from django.contrib.auth.models import User
+from django.conf import settings
 from django.core.mail import send_mail
+from blog import admin
 from blog.models import Posts
 from . import forms
 from paragliding.statistics import get_general_statistics, get_flights_per_day
@@ -60,7 +62,8 @@ def register(request):
             email = form.cleaned_data.get('user_mail')
 
             try:
-                User.objects.create_user(username=username, password=password, email=email)
+                User.objects.create_user(
+                    username=username, password=password, email=email)
 
                 # Send confirmation email
                 subject = 'Hesabınız Başarıyla Oluşturuldu'
@@ -68,13 +71,15 @@ def register(request):
                 send_mail(
                     subject,
                     body,
-                    "serkankurd@gmail.com",  # It's best to use settings.DEFAULT_FROM_EMAIL
+                    settings.DEFAULT_FROM_EMAIL,
                     [email],
                     fail_silently=False,
                 )
-                messages.success(request, "Hesabınız başarıyla oluşturuldu. Şimdi giriş yapabilirsiniz.")
+                messages.success(
+                    request, "Hesabınız başarıyla oluşturuldu. Şimdi giriş yapabilirsiniz.")
             except Exception as e:
-                messages.error(request, f"Kayıt sırasında bir hata oluştu: {e}")
+                messages.error(
+                    request, f"Kayıt sırasında bir hata oluştu: {e}")
 
             return redirect('homepage:index')
     else:
@@ -102,18 +107,9 @@ def contact_form(request):
                 send_mail(
                     subject,
                     body,
-                    "serkankurd@gmail.com",
-                    [email],
-                    fail_silently=False,
+                    settings.DEFAULT_FROM_EMAIL,
+                    settings.DEFAULT_ADMIN_EMAILS,
                 )
-                # send_mail(
-                #     subject,
-                #     body,
-                #     settings.DEFAULT_FROM_EMAIL,
-                #     [admin[1] for admin in settings.ADMINS]
-                # )
-
-                # Send a notification to all registered Telegram chats
 
                 messages.success(
                     request, "Mesajınız başarıyla gönderildi. Teşekkür ederiz!")

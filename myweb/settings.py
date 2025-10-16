@@ -175,8 +175,11 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_USE_SSL = False
-EMAIL_HOST_USER = 'serkankurd@gmail.com'
-EMAIL_HOST_PASSWORD = 'yjkiqextfvpfumck'
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL')
+DEFAULT_ADMIN_EMAILS_STR = os.environ.get('DEFAULT_ADMIN_EMAILS')
+DEFAULT_ADMIN_EMAILS = [email.strip() for email in DEFAULT_ADMIN_EMAILS_STR.split(',') if email.strip()]
 
 
 CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')
