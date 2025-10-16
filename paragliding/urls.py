@@ -15,6 +15,4 @@ urlpatterns = [
          views.apply_course_view, name="apply_course"),
     path("course_detail/<int:course_id>",
          views.course_detail_view, name="course_detail_id"),
-    path("pilot/download_igc/<int:pilot_id>",
-         views.pilot_flight_data_download, name="pilot_flight_data_download"),
 ]

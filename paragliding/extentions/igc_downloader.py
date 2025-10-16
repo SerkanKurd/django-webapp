@@ -109,6 +109,7 @@ def main(url: str):
     global download_dir
     flight_id = url.split("/")[-1]
     download_dir = os.path.abspath(f"downloads/{flight_id}")
+    shutil.rmtree(download_dir, ignore_errors=True)
     os.mkdir(download_dir)
     setup()
 
