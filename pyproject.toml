@@ -1,0 +1,21 @@
+[project]
+name = "django-webapp"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "bs4>=0.0.2",
+    "celery>=5.5.3",
+    "crispy-bootstrap5>=2025.6",
+    "django==5.2.7",
+    "django-crispy-forms>=2.4",
+    "gunicorn>=22.0.0",
+    "psycopg>=3.2.1",
+    "psycopg-binary>=3.2.1",
+    "python-dotenv>=1.2.1",
+    "redis>=6.4.0",
+    "requests>=2.32.5",
+    "selenium==4.36.0",
+    "webdriver-manager>=4.0.2",
+]
