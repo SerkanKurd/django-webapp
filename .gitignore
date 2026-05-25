@@ -56,3 +56,6 @@ Thumbs.db
 *.json
 dev
 celerybeat*
+
+# Local environment variables
+.env

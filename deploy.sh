@@ -17,6 +17,6 @@ docker image prune -f
 
 echo "✅ İşlem tamamlandı! Uygulama http://localhost adresinde yayında."
 
-# 4. Docker Hub'a imajı gönder (Opsiyonel)
-docker tag django-webapp serkankurd/django-webapp:latest
-docker push serkankurd/django-webapp:latest
+# 4. GitHub Container Registry'ye imajı gönder (Opsiyonel)
+docker tag django-webapp ghcr.io/serkankurd/django-webapp:latest
+docker push ghcr.io/serkankurd/django-webapp:latest
