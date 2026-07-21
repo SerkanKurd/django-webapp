@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 import os
+import sys
 from pathlib import Path
 from django.contrib.messages import constants as messages
 from datetime import timedelta
@@ -99,16 +100,24 @@ APP_VERSION = '20251015.002'
 # }
 
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.environ.get("DB_NAME"),
-        "USER": os.environ.get("DB_USER"),
-        "PASSWORD": os.environ.get("DB_PASSWORD"),
-        "HOST": os.environ.get("DB_HOST"),
-        "PORT": os.environ.get("DB_PORT"),
+if 'test' in sys.argv or os.environ.get("USE_SQLITE") == "True" or not os.environ.get("DB_NAME"):
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.environ.get("DB_NAME"),
+            "USER": os.environ.get("DB_USER"),
+            "PASSWORD": os.environ.get("DB_PASSWORD"),
+            "HOST": os.environ.get("DB_HOST"),
+            "PORT": os.environ.get("DB_PORT"),
+        }
+    }
 
 
 # Password validation
@@ -178,7 +187,7 @@ EMAIL_USE_SSL = False
 EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL')
-DEFAULT_ADMIN_EMAILS_STR = os.environ.get('DEFAULT_ADMIN_EMAILS')
+DEFAULT_ADMIN_EMAILS_STR = os.environ.get('DEFAULT_ADMIN_EMAILS', '')
 DEFAULT_ADMIN_EMAILS = [email.strip() for email in DEFAULT_ADMIN_EMAILS_STR.split(',') if email.strip()]
 
 
