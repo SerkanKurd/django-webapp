@@ -69,12 +69,14 @@
             </div>
         </div>
     </div>
+    {{ flights_chart_data|json_script:"flights-chart-data" }}
+    {{ stats.pilots_by_level|json_script:"pilots-by-level-data" }}
     <!-- Add a script block to pass data to the chart -->
     <script>
         // This will be executed after the main scripts are loaded from master.html
         document.addEventListener('DOMContentLoaded', function() {
             // Data from Django context
-            const flightData = JSON.parse('{{ flights_chart_data|safe }}');
+            const flightData = JSON.parse(document.getElementById('flights-chart-data').textContent);
             const flightLabels = flightData.map(item => item.date);
             const flightCounts = flightData.map(item => item.count);
 
@@ -114,7 +116,7 @@
                 }
             });
 
-            const pilotData = {{ stats.pilots_by_level|safe }};
+            const pilotData = JSON.parse(document.getElementById('pilots-by-level-data').textContent);
             
             // Prepare data for Chart.js
             const labels = pilotData.map(item => item.level);

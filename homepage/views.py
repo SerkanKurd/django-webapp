@@ -11,6 +11,9 @@ from paragliding.statistics import get_general_statistics, get_flights_per_day
 import json
 
 
+from django.views.decorators.http import require_POST
+
+
 def index(request):
     stats = get_general_statistics()
     blog_post_count = Posts.objects.count()
@@ -19,14 +22,16 @@ def index(request):
     context = {
         "stats": stats,
         "blog_post_count": blog_post_count,
-        "flights_chart_data": json.dumps(flights_last_30_days),
+        "flights_chart_data": flights_last_30_days,
     }
     return render(request, "index.html", context)
 
 
+@require_POST
 def log_out(request):
     logout(request)
-    return render(request, 'index.html')
+    messages.info(request, "Başarıyla çıkış yapıldı.")
+    return redirect('homepage:index')
 
 
 def log_in(request):

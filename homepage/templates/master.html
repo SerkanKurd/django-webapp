@@ -38,7 +38,14 @@
                         <li><a class="dropdown-item" href="{% url 'admin:index' %}">Yönetici Paneli</a></li>
                         <li><hr class="dropdown-divider" /></li>
                         <li><a class="dropdown-item" href="{% url 'homepage:login' %}">Giriş Yap</a></li>
-                        <li><a class="dropdown-item" href="{% url 'homepage:logout' %}">Çıkış Yap</a></li>
+                        {% if user.is_authenticated %}
+                        <li>
+                            <form id="logout-form" action="{% url 'homepage:logout' %}" method="post" class="d-none">
+                                {% csrf_token %}
+                            </form>
+                            <a class="dropdown-item" href="#" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">Çıkış Yap</a>
+                        </li>
+                        {% endif %}
                         <li><a class="dropdown-item" href="{% url 'homepage:register' %}">Kayıt Ol</a></li>
                     </ul>
                 </li>
@@ -127,7 +134,7 @@
                     <div class="sb-sidenav-footer">
                         <div class="small">Logged in as:</div>
                         {% if user.is_authenticated %}
-                        <a href="{% url 'homepage:logout' %}" class="text-decoration-none">{{ user.username }}</a>
+                        <a href="#" onclick="event.preventDefault(); document.getElementById('logout-form').submit();" class="text-decoration-none">{{ user.username }}</a>
                         {% else %}
                         <a href="{% url 'homepage:login' %}" class="text-decoration-none">Guest</a>
                         {% endif %}

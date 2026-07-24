@@ -2,6 +2,8 @@ import email
 from django import forms
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
 
 
@@ -69,9 +71,17 @@ class RegisterForm(forms.Form):
         cleaned_data = super().clean()
         password = cleaned_data.get('password')
         password_confirm = cleaned_data.get('password_confirm')
+        username = cleaned_data.get('username')
 
-        if password and password_confirm and password != password_confirm:
-            self.add_error('password_confirm', "Şifreler eşleşmiyor.")
+        if password and password_confirm:
+            if password != password_confirm:
+                self.add_error('password_confirm', "Şifreler eşleşmiyor.")
+            else:
+                user_obj = User(username=username) if username else None
+                try:
+                    validate_password(password, user=user_obj)
+                except ValidationError as e:
+                    self.add_error('password', e)
         return cleaned_data
 
 

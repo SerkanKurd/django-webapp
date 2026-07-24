@@ -107,8 +107,10 @@ def upload_file(url):
 
 def main(url: str):
     global download_dir
-    flight_id = url.split("/")[-1]
-    download_dir = os.path.abspath(f"downloads/{flight_id}")
+    flight_id = url.split("/")[-1].strip()
+    if not flight_id.isalnum():
+        raise ValueError(f"Invalid flight ID in URL: {url}")
+    download_dir = os.path.abspath(os.path.join("downloads", flight_id))
     shutil.rmtree(download_dir, ignore_errors=True)
     os.mkdir(download_dir)
     setup()

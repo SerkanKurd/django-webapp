@@ -1,3 +1,4 @@
+from urllib.parse import urlparse
 from django import forms
 from django.utils.formats import date_format
 from crispy_forms.helper import FormHelper
@@ -77,12 +78,17 @@ class PilotForm(forms.ModelForm):
         name = cleaned_data.get('name')
 
         if profile_url:
-            ypforum_pilot_name = get_name(profile_url)
-            if not ypforum_pilot_name:
+            parsed = urlparse(profile_url)
+            if parsed.scheme != 'https' or parsed.netloc not in ('www.ypforum.com', 'ypforum.com') or not parsed.path.startswith('/leonardo/pilot/'):
                 self.add_error(
-                    'profile_url', "Profil URL'si hatalı veya geçerli bir isim bulunamadı. Örn: https://www.ypforum.com/leonardo/pilot/0_6573")
-            elif not name:
-                cleaned_data['name'] = ypforum_pilot_name
+                    'profile_url', "Profil URL'si sadece geçerli bir ypforum.com pilot profil adresi olabilir. (Örn: https://www.ypforum.com/leonardo/pilot/0_6573)")
+            else:
+                ypforum_pilot_name = get_name(profile_url)
+                if not ypforum_pilot_name:
+                    self.add_error(
+                        'profile_url', "Profil URL'si hatalı veya geçerli bir isim bulunamadı. Örn: https://www.ypforum.com/leonardo/pilot/0_6573")
+                elif not name:
+                    cleaned_data['name'] = ypforum_pilot_name
 
             # Mevcut yöneticinin bu profili zaten ekleyip eklemediğini kontrol et
             if self.request and self.request.user.is_authenticated:

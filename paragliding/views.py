@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.db.models import Sum
 from django.db import transaction
 from datetime import timedelta
+import os
 import io
 import zipfile
 from . import models
@@ -314,8 +315,9 @@ def pilot_flight_view(request, pilot_id: int):
                 with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
                     for flight in flights_with_igc:
                         flight_id = flight.flight_url.split("/")[-1]
+                        safe_file_name = os.path.basename(flight.file_name)
                         zip_file.writestr(
-                            f"{flight_id}_{flight.file_name}", flight.file_content)
+                            f"{flight_id}_{safe_file_name}", flight.file_content)
 
                 response = HttpResponse(
                     zip_buffer.getvalue(), content_type='application/zip')
