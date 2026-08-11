@@ -1,5 +1,6 @@
 services:
   nginx:
+    container_name: django-nginx
     image: nginx:1.25-alpine
     ports:
       - "80:80"
@@ -11,14 +12,15 @@ services:
         condition: service_healthy
 
   redis:
+    container_name: django-redis
     image: "redis:alpine"
     ports:
       - "6379:6379"
 
   web:
+    container_name: django-mywebapp
     build: .
-    # command: gunicorn myweb.wsgi:application --bind 0.0.0.0:8000
-    command: python manage.py runserver 0.0.0.0:8000 
+    command: gunicorn myweb.wsgi:application --bind 0.0.0.0:8000
     env_file:
       - .env
     volumes:
@@ -29,12 +31,13 @@ services:
     expose:
       - 8000
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000"]
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/health/"]
       interval: 10s
       timeout: 5s
       retries: 5
 
   celery-worker:
+    container_name: django-celery
     build: .
     command: celery -A myweb worker -l info
     env_file:
@@ -45,6 +48,7 @@ services:
       - redis
 
   celery-beat:
+    container_name: django-celery-beat
     build: .
     command: celery -A myweb beat -l info
     env_file:
@@ -53,6 +57,7 @@ services:
       - .:/app
     depends_on:
       - redis
+
 
 volumes:
   static_data:

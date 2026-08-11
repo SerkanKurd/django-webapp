@@ -39,11 +39,14 @@ if not SECRET_KEY:
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-if DEBUG:
-    ALLOWED_HOSTS_str = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1')
+raw_allowed_hosts = os.environ.get('ALLOWED_HOSTS') or os.environ.get('ALLOWED_HOSTS_str')
+if raw_allowed_hosts:
+    ALLOWED_HOSTS = [host.strip() for host in raw_allowed_hosts.split(',') if host.strip()]
+elif DEBUG:
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'web', 'django-mywebapp', 'django-nginx']
 else:
-    ALLOWED_HOSTS_str = os.environ.get('ALLOWED_HOSTS', '')
-ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_str.split(',') if host.strip()]
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'web', 'django-mywebapp', 'django-nginx', 'yp.serkankurd.uk', '*.cfargotunnel.com']
+
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in os.environ.get('CSRF_TRUSTED_ORIGINS', 'https://yp.serkankurd.uk').split(',') if origin.strip()]
